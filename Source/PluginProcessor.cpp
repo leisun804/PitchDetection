@@ -22,6 +22,10 @@ PitchDetectionAudioProcessor::PitchDetectionAudioProcessor()
                        )
 #endif
 {
+    addParameter (windowSize = new juce::AudioParameterInt("windowSize", "windowSize", 2048, 4096, 2048) );
+    addParameter (hoppingSize = new juce::AudioParameterInt("hoppingSize", "hoppingSize", 1, 1024, 1024) );
+    addParameter (leastNoteLength = new juce::AudioParameterInt("least note length", "least note length", 500, 2500, 2000) );
+    addParameter (SIMD = new juce::AudioParameterBool("SIMD", "SIMD", false));
 }
 
 PitchDetectionAudioProcessor::~PitchDetectionAudioProcessor()
@@ -93,6 +97,7 @@ void PitchDetectionAudioProcessor::changeProgramName (int index, const juce::Str
 //==============================================================================
 void PitchDetectionAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    
     autoCorrelation.prepare(sampleRate, samplesPerBlock);
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
@@ -145,23 +150,13 @@ void PitchDetectionAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
+    buffer.getWritePointer(1);
     juce::dsp::AudioBlock<float> block(buffer);
-
     auto context = juce::dsp::ProcessContextReplacing<float>(block);
-   
     
-    
-    
-    
-    /*auto message = juce::MidiMessage::noteOn(1, 50, (juce::uint8) 100);
-    midiMessages.addEvent(message, 0);
-    
-    message = juce::MidiMessage::noteOff(1, 50, (juce::uint8)0);
-    midiMessages.addEvent(message, 1000);
-    */
-    
-    autoCorrelation.process(context,midiMessages);
-    
+    autoCorrelation.LNL = leastNoteLength -> get();
+    autoCorrelation.SIMD = SIMD -> get();
+    autoCorrelation.process(windowSize -> get(), hoppingSize -> get(), context,midiMessages);
     
 }
 
@@ -173,7 +168,8 @@ bool PitchDetectionAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* PitchDetectionAudioProcessor::createEditor()
 {
-    return new PitchDetectionAudioProcessorEditor (*this);
+    //return new PitchDetectionAudioProcessorEditor (*this);
+    return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
@@ -196,3 +192,4 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new PitchDetectionAudioProcessor();
 }
+
