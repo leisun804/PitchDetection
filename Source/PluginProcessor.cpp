@@ -22,10 +22,16 @@ PitchDetectionAudioProcessor::PitchDetectionAudioProcessor()
                        )
 #endif
 {
-    addParameter (windowSize = new juce::AudioParameterInt("windowSize", "windowSize", 2048, 4096, 2048) );
+    addParameter (windowSizePower2 = new juce::AudioParameterInt("windowSizePower2", "windowSizePower2", 11, 13, 11) );
     addParameter (hoppingSize = new juce::AudioParameterInt("hoppingSize", "hoppingSize", 1, 1024, 1024) );
     addParameter (leastNoteLength = new juce::AudioParameterInt("least note length", "least note length", 500, 2500, 2000) );
-    addParameter (SIMD = new juce::AudioParameterBool("SIMD", "SIMD", false));
+    addParameter(correlationThres = new juce::AudioParameterFloat("correlation threshold", "correlation threshold", juce::NormalisableRange<float>(0.2f, 0.8f, 0.01f, 1.f), 0.6f));
+    addParameter(noiseThres = new juce::AudioParameterFloat("noise threshold", "noise threshold", juce::NormalisableRange<float>(0.f, 0.1f, 0.005f, 1.f), 0.05f));
+    juce::StringArray str;
+    str.add("Origin");
+    str.add("SIMD");
+    str.add("FFT");
+    addParameter (function = new juce::AudioParameterChoice("function", "function", str, 2));
 }
 
 PitchDetectionAudioProcessor::~PitchDetectionAudioProcessor()
@@ -154,10 +160,19 @@ void PitchDetectionAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     juce::dsp::AudioBlock<float> block(buffer);
     auto context = juce::dsp::ProcessContextReplacing<float>(block);
     
-    autoCorrelation.LNL = leastNoteLength -> get();
-    autoCorrelation.SIMD = SIMD -> get();
-    autoCorrelation.process(windowSize -> get(), hoppingSize -> get(), context,midiMessages);
+    updateCoef();
+    autoCorrelation.process(context, midiMessages);
     
+}
+
+void PitchDetectionAudioProcessor::updateCoef()
+{
+    autoCorrelation.LNL = leastNoteLength -> get();
+    autoCorrelation.function = function -> getIndex();
+    autoCorrelation.windowSizePower2 = windowSizePower2 -> get();
+    autoCorrelation.hoppingSize = hoppingSize -> get();
+    autoCorrelation.correlationThres = correlationThres -> get();
+    autoCorrelation.noiseThres = noiseThres -> get();
 }
 
 //==============================================================================

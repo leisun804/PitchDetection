@@ -56,17 +56,18 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
-    
+   
     //==============================================================================
-    /*static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-    juce::AudioProcessorValueTreeState apvts {*this, nullptr, "Parameters", createParameterLayout()};*/
+    void updateCoef();
 
 private:
     AutoCorrelation autoCorrelation;
-    juce::AudioParameterInt* windowSize;
+    juce::AudioParameterInt* windowSizePower2;
     juce::AudioParameterInt* hoppingSize;
     juce::AudioParameterInt* leastNoteLength;
-    juce::AudioParameterBool* SIMD;
+    juce::AudioParameterFloat* correlationThres;
+    juce::AudioParameterFloat* noiseThres;
+    juce::AudioParameterChoice* function;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PitchDetectionAudioProcessor)
 };
